@@ -11,6 +11,7 @@ public class WebServerConfig {
     public static final String INDEX_FILE_PATH = "/index.html";
     public static final String USER_CREATE_FORM_FILE_PATH = "/user/form.html";
     public static final String USER_CREATE_DUPLICATE_USERID_FAIL_FILE_PATH = "/user/form_userId_duplicate_fail.html";
+    public static final String LOGIN_FILE_PATH = "/user/login.html";
     public static final String LOGIN_FAIL_FILE_PATH = "/user/login_failed.html";
     public static final String NOT_FOUND_FILE_PATH = "/not_found.html";
 }

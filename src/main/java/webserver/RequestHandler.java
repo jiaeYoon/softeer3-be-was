@@ -3,8 +3,10 @@ package webserver;
 import java.io.*;
 import java.lang.reflect.Method;
 import java.net.Socket;
+import java.util.Collection;
 
 import common.util.FileManager;
+import db.Database;
 import dto.HttpRequest;
 import dto.HttpResponse;
 import http.MethodMapper;
@@ -14,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import session.SessionManager;
 
+import static common.WebServerConfig.LOGIN_FILE_PATH;
 import static dto.HttpResponse.*;
 import static http.constants.Status.*;
 
@@ -38,17 +41,34 @@ public class RequestHandler implements Runnable {
 
             String requestMethod = request.getMethod();
             String requestPath = request.getPath();
-            String sessionId;
             try {
                 // 정적 컨텐츠 처리
                 if (requestMethod.equals("GET")
                         && (FileManager.getFile(requestPath, getContentType(requestPath))) != null) {
                     response.makeBody(OK, requestPath);
-                    if ((response.getHeaders().get("Content-Type").equals("text/html"))
-                            && (sessionId = request.getCookie("SID")) != null) {
+
+                    // 쿠키로부터 세션 아이디 획득
+                    String sessionId = null;
+                    if (request.getHeaders().get("Cookie") != null && request.getHeaders().get("Cookie").contains("SID")) {
+                        sessionId = request.getCookie("SID");
+                    }
+
+                    // 사용자가 로그인 상태일 경우 /index.html에서 사용자 이름을 표시함
+                    if ((response.getHeaders().get("Content-Type").equals("text/html")) && sessionId != null) {
                         String htmlPage = new String(response.getBody());
                         User user = SessionManager.getUser(sessionId);
                         response.makeDynamicHtmlBody(OK, htmlPage.replace("로그인", user.getName()));
+                    }
+
+                    // 사용자가 로그인 상태일 경우 /user/list.html에서 사용자 목록을 출력함
+                    if (request.getPath().equals("/user/list.html")) {
+                        if (sessionId == null) {
+                            response = new HttpResponse().makeRedirect(LOGIN_FILE_PATH);
+                        } else {
+                            String htmlPage = new String(response.getBody());
+                            StringBuilder usersTableHtml = getUserListHtml();
+                            response.makeDynamicHtmlBody(OK, htmlPage.replace("<tr></tr>", usersTableHtml));
+                        }
                     }
                 }
                 // 동적 컨텐츠 처리
@@ -65,5 +85,26 @@ public class RequestHandler implements Runnable {
         } catch (Exception e) {
             logger.debug(e.getMessage());
         }
+    }
+
+    private static StringBuilder getUserListHtml() {
+        Collection<User> users = Database.findAll();
+        StringBuilder usersTableHtml = new StringBuilder();
+        int rowIndex = 1;
+        for (User user : users) {
+            usersTableHtml.append("<tr>\n");
+            usersTableHtml.append(
+                    String.format("<th scope=\"row\">%d</th> " +
+                                    "<td>%s</td> " +
+                                    "<td>%s</td> " +
+                                    "<td>%s</td>" +
+                                    "<td><a href=\"#\" " +
+                                    "class=\"btn btn-success\" " +
+                                    "role=\"button\">수정</a></td>\n",
+                            rowIndex, user.getUserId(), user.getName(), user.getEmail()));
+            usersTableHtml.append("</tr>\n");
+            rowIndex++;
+        }
+        return usersTableHtml;
     }
 }
