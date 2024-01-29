@@ -17,8 +17,6 @@ public class HttpResponse {
     private final Map<String, String> headers = new HashMap<>();
     private byte[] body;
 
-    private static final String RESOURCES_PATH = "src/main/resources/";
-
     public HttpResponse makeRedirect(String redirectUrl) {
         this.status = Status.REDIRECT;
         addHeader("Location", redirectUrl);
@@ -31,6 +29,13 @@ public class HttpResponse {
         this.body = getFile(path, contentType);
         addHeader("Content-Type", contentType);
         addHeader("Content-Length", String.valueOf(body.length));
+    }
+
+    public void makeDynamicHtmlBody(Status status, String body) {
+        this.status = status;
+        this.body = body.getBytes();
+        headers.put("Content-Type", "text/html");
+        headers.put("Content-Length", String.valueOf(body.length()));
     }
 
     public void addHeader(String key, String value) {

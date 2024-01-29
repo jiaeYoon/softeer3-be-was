@@ -56,4 +56,14 @@ public class HttpRequest {
         br.read(buffer, 0, contentLength);
         return new String(buffer);
     }
+
+    public String getCookie(String key) {
+        String[] cookies = headers.get("Cookie").split("; ");
+        for (String cookie : cookies) {
+            if (cookie.startsWith(key)) {
+                return cookie.split("=")[1];
+            }
+        }
+        return null;
+    }
 }

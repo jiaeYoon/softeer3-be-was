@@ -9,8 +9,10 @@ import dto.HttpRequest;
 import dto.HttpResponse;
 import http.MethodMapper;
 import http.ExceptionHandler;
+import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import session.SessionManager;
 
 import static dto.HttpResponse.*;
 import static http.constants.Status.*;
@@ -36,11 +38,18 @@ public class RequestHandler implements Runnable {
 
             String requestMethod = request.getMethod();
             String requestPath = request.getPath();
+            String sessionId;
             try {
                 // 정적 컨텐츠 처리
                 if (requestMethod.equals("GET")
                         && (FileManager.getFile(requestPath, getContentType(requestPath))) != null) {
                     response.makeBody(OK, requestPath);
+                    if ((response.getHeaders().get("Content-Type").equals("text/html"))
+                            && (sessionId = request.getCookie("SID")) != null) {
+                        String htmlPage = new String(response.getBody());
+                        User user = SessionManager.getUser(sessionId);
+                        response.makeDynamicHtmlBody(OK, htmlPage.replace("로그인", user.getName()));
+                    }
                 }
                 // 동적 컨텐츠 처리
                 else {
